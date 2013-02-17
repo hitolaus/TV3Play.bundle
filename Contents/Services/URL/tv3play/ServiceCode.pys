@@ -1,0 +1,94 @@
+
+BANDWIDTH_PATTERN = Regex('#EXT.*BANDWIDTH=([0-9]+)')
+
+STREAM_BASE_URL = 'http://viastream.viasat.tv/MobileStream/'
+IMAGE_URL = 'http://play.pdl.viaplay.com/imagecache/290x162/'
+
+
+####################################################################################################
+def MetadataObjectForURL(url):
+    details = JSON.ObjectFromURL(url)
+
+    return VideoClipObject(
+        title=details['format']['title'],
+        summary=details['format']['description'],
+        thumb=IMAGE_URL + details['format']['image'])
+
+
+####################################################################################################
+def MediaObjectsForURL(url):
+    return [
+      MediaObject(
+                  parts=[PartObject(key=HTTPLiveStreamURL(Callback(PlayVideo, url=url, platform=Client.Platform)))]
+      )
+    ]
+
+
+def PlayVideo(url, platform):
+    details = JSON.ObjectFromURL(url)
+
+    url = HTTP.Request(STREAM_BASE_URL + details['focus_video']).content
+
+    # TODO: Error handling
+
+    url = url.replace('\/', '/')
+    url = url.replace('"', '')
+
+    # Sometimes we get MPEG4 URLs instead of M3U8 playlists
+    if url.endswith('.mp4'):
+        return Redirect(url)
+
+    original_playlist = HTTP.Request(url).content
+
+    url = url[:url.rindex("/")]
+
+    new_playlist = RegeneratePlaylist(original_playlist.splitlines(), url)
+
+    Log(new_playlist)
+
+    if platform == ClientPlatform.iOS:
+        return Redirect(original_playlist)
+    else:
+        return new_playlist
+
+
+######################################
+# Plex is unable to handle relative playlist files and doesn't select the correct bandwidth
+# so we are manually creating the playlist with the max bandwidth
+######################################
+def RegeneratePlaylist(playlist, url):
+    max_bandwidth = 0
+    max_bandwidth_meta = ""
+    max_bandwidth_url = ""
+
+    reading = False
+
+    new_playlist = '#EXTM3U\n'
+    for line in playlist:
+        bandwidth = BANDWIDTH_PATTERN.search(line)
+        if not bandwidth:
+            if not reading:
+                continue
+            else:
+                if not line.startswith('http'):
+                    max_bandwidth_url = url + '/' + line
+                else:
+                    max_bandwidth_url = line
+                reading = False
+        else:
+            current_bandwidth = int(bandwidth.group(1))
+
+            if current_bandwidth > max_bandwidth:
+                max_bandwidth = current_bandwidth
+                max_bandwidth_meta = line
+                reading = True
+
+    new_playlist = new_playlist + max_bandwidth_meta + '\n'
+    new_playlist = new_playlist + max_bandwidth_url + '\n'
+
+    return new_playlist
+
+
+####################################################################################################
+def NormalizeURL(url):
+    return url

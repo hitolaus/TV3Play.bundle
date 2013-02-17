@@ -1,0 +1,9 @@
+[
+ 	{
+        "id": "site",
+        "type": "enum",
+        "label": "Site",
+        "values": [ "DK", "SE", "NO" ],
+        "default": "DK"
+    }
+]
