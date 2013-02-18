@@ -61,7 +61,7 @@ def MainMenu():
     oc.add(DirectoryObject(
         key=Callback(LatestProgramsList),
         title=L('Latest Programs Menu Title'),
-        thumb=R('icon-popular.png')))
+        thumb=R('icon-flaged.png')))
     #oc.add(DirectoryObject(
     #    key=Callback(AllList),
     #    title=L('All Menu Title'),
@@ -73,13 +73,8 @@ def MainMenu():
 
 def RecommendedList():
     oc = ObjectContainer()
-    # recommended / latest_programs / latest_clips
     for item in JSON.ObjectFromURL(BASE_URL + FEATURED_API)['recommended']:
-        oc.add(VideoClipObject(
-                title=item['title'],
-                summary=item['description'],
-                thumb=Resource.ContentsOfURLWithFallback(IMAGE_URL_SMALL + item['image'], R('icon-movie.png')),
-                url=BASE_URL + DETAILED_API + item['id']))
+        oc.add(ParseEpisode(item))
 
     return oc
 
@@ -87,11 +82,7 @@ def RecommendedList():
 def LatestProgramsList():
     oc = ObjectContainer()
     for item in JSON.ObjectFromURL(BASE_URL + FEATURED_API)['latest_programs']:
-        oc.add(VideoClipObject(
-                title=item['title'],
-                summary=item['description'],
-                thumb=Resource.ContentsOfURLWithFallback(IMAGE_URL_SMALL + item['image'], R('icon-movie.png')),
-                url=BASE_URL + DETAILED_API + item['id']))
+        oc.add(ParseEpisode(item))
 
     return oc
 
@@ -99,11 +90,7 @@ def LatestProgramsList():
 def MostViewedList():
     oc = ObjectContainer()
     for item in JSON.ObjectFromURL(BASE_URL + MOSTVIEWED_API)[0]['videos']:
-        oc.add(VideoClipObject(
-                title=item['title'],
-                summary=item['description'],
-                thumb=Resource.ContentsOfURLWithFallback(IMAGE_URL_SMALL + item['image'], R('icon-movie.png')),
-                url=BASE_URL + DETAILED_API + item['id']))
+        oc.add(ParseEpisode(item))
 
     return oc
 
@@ -111,3 +98,53 @@ def MostViewedList():
 def AllList():
     oc = ObjectContainer()
     return oc
+
+
+##
+# Parses the following
+# {
+#     id: "295806",
+#     type: "video_program",
+#     title: "Paradise Hotel 2013 S09E01",
+#     summary: "Intet er sikkert, og alt er langt fra, som gæsterne forventer det, når TV3 åbner dørene til Paradise Hotel 2013 og lader sommerfuglen flyve afsted mod den halve million.",
+#     description: "Som altid er der farlige alliancer, spirende romancer og kærlighed blandt gæsterne, der kæmper om titlen som årets vinder af Paradise Hotel og den halve million kroner. Hotellet er igen gjort klar, og værelserne Cobra, Cocodrilo, Flamingo, Geco og Leopardo har fået et helt nyt og lækkert look, mens Solo-værelset mest af alt ligner et gammelt nedslidt omklædningsrum. Alle deltagerne er spændt til bristepunktet, og de er mere end klar til at tjekke ind i de flotte og luksuriøse omgivelser på Paradise Hotel 2013. Vejen til finalen er lang, og der er blevet fyret godt op under sombreroen i år, så der er masser af skæve twists og store oplevelser for de uvidende gæster, som tjekker ind på det mondæne mexicanske hotel. ",
+#     image: "category_pictures/Rikke2.jpg",
+#     length: "2492",
+#     expiration: null,
+#     created: "1358180317",
+#     updated: "1360154093",
+#     formatcategoryid: "4789",
+#     formatid: "3823",
+#     formattitle: "Paradise Hotel",
+#     airdate: "2013-01-14 21:00:00",
+#     season: "9",
+#     episode: "1"
+# }
+def ParseEpisode(item):
+    try:
+        duration = int(item['length']) * 1000
+    except:
+        duration = None
+
+    try:
+        season = int(item['season'])
+        episode = int(item['episode'])
+    except:
+        episode = None
+        season = None
+
+    try:
+        airdate = Datetime.ParseDate(item['airdate']).date()
+    except:
+        airdate = None
+
+    return EpisodeObject(
+        show=item['formattitle'],
+        title=item['title'],
+        season=season,
+        index=episode,
+        summary=item['description'],
+        duration=duration,
+        originally_available_at=airdate,
+        thumb=Resource.ContentsOfURLWithFallback(IMAGE_URL_SMALL + item['image'], R('icon-movie.png')),
+        url=BASE_URL + DETAILED_API + item['id'])

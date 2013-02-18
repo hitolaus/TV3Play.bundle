@@ -27,9 +27,10 @@ def MediaObjectsForURL(url):
 def PlayVideo(url, platform):
     details = JSON.ObjectFromURL(url)
 
-    url = HTTP.Request(STREAM_BASE_URL + details['focus_video']).content
-
-    # TODO: Error handling
+    try:
+        url = HTTP.Request(STREAM_BASE_URL + details['focus_video']).content
+    except:
+        raise Ex.MediaNotAvailable
 
     url = url.replace('\/', '/')
     url = url.replace('"', '')
