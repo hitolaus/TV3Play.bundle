@@ -14,7 +14,8 @@ API_BASE = '/mobileapi/'
 FEATURED_API = API_BASE + 'featured'
 MOSTVIEWED_API = API_BASE + 'mostviewed'
 ALL_API = API_BASE + 'format'
-DETAILED_API = API_BASE + 'detailed?videoid='
+DETAILED_VIDEO_API = API_BASE + 'detailed?videoid='
+DETAILED_FORMAT_API = API_BASE + 'detailed?formatid='
 
 IMAGE_URL_SMALL = 'http://play.pdl.viaplay.com/imagecache/290x162/'
 
@@ -62,10 +63,10 @@ def MainMenu():
         key=Callback(LatestProgramsList),
         title=L('Latest Programs Menu Title'),
         thumb=R('icon-flaged.png')))
-    #oc.add(DirectoryObject(
-    #    key=Callback(AllList),
-    #    title=L('All Menu Title'),
-    #    thumb=R('icon-menu.png')))
+    oc.add(DirectoryObject(
+       key=Callback(AllList),
+       title=L('All Menu Title'),
+       thumb=R('icon-menu.png')))
     oc.add(PrefsObject(title=L('Preferences Menu Title'), thumb=R('icon-prefs.png')))
 
     return oc
@@ -97,6 +98,32 @@ def MostViewedList():
 
 def AllList():
     oc = ObjectContainer()
+
+    for section in JSON.ObjectFromURL(BASE_URL + ALL_API)['sections']:
+        for item in section['formats']:
+            oc.add(ParseShows(item))
+
+    return oc
+
+
+def ParseShows(item):
+    # We use EpisodeObject instead of TVShowObject to get the correct aspect ratio on the thumb
+    return EpisodeObject(
+        key=Callback(ParseShow, url=BASE_URL + DETAILED_FORMAT_API + item['id']),
+        rating_key=item['id'],
+        title=item['title'],
+        summary=item['description'],
+        thumb=Resource.ContentsOfURLWithFallback(IMAGE_URL_SMALL + item['image'], R('icon-movie.png')))
+
+
+def ParseShow(url):
+    oc = ObjectContainer()
+
+    videos = JSON.ObjectFromURL(url)['videos']
+
+    for item in videos['video_program']:
+        oc.add(ParseEpisode(item))
+
     return oc
 
 
@@ -147,4 +174,4 @@ def ParseEpisode(item):
         duration=duration,
         originally_available_at=airdate,
         thumb=Resource.ContentsOfURLWithFallback(IMAGE_URL_SMALL + item['image'], R('icon-movie.png')),
-        url=BASE_URL + DETAILED_API + item['id'])
+        url=BASE_URL + DETAILED_VIDEO_API + item['id'])

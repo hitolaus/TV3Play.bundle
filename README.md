@@ -17,7 +17,7 @@ Download the ZIP and extract it:
     $ cd ~/Library/Application Support/Plex Media Server/Plug-ins/
     $ unzip /tmp/tv3play.zip
 
-Now Plex should see the TV3 Play plugin.
+Now Plex should see the TV3 Play plugin. You may need to restart the Plex Media Server.
 
 # Credits
 
