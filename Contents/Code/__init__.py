@@ -107,8 +107,7 @@ def AllList():
 
 
 def ParseShows(item):
-    # We use EpisodeObject instead of TVShowObject to get the correct aspect ratio on the thumb
-    return EpisodeObject(
+    return TVShowObject(
         key=Callback(ParseShow, url=BASE_URL + DETAILED_FORMAT_API + item['id']),
         rating_key=item['id'],
         title=item['title'],
